@@ -1,0 +1,52 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: pip install -e ".[dev]"
+      - run: python -m pytest tests/ -q
+
+  windows-exe:
+    runs-on: windows-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install . pyinstaller
+      - name: Bundle
+        run: >-
+          pyinstaller --noconfirm --windowed --name Grayson
+          --collect-binaries imageio_ffmpeg
+          --collect-submodules grayson
+          grayson_app.py
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path dist/Grayson -DestinationPath Grayson-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Grayson-windows
+          path: Grayson-windows.zip
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Grayson-windows.zip
