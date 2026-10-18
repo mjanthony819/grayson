@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import math
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
 
@@ -18,8 +18,12 @@ BG_HOVER = QColor(35, 90, 190, 245)   # electric blue
 EDGE = QColor(70, 130, 255)
 TEXT = QColor(230, 238, 255)
 
-OUTER_R = 170
-DEAD_R = 52
+OUTER_R = 215
+DEAD_R = 56
+PAGE_SIZE = 8          # slices per page; with more actions the 8th is 'More'
+MORE_ID = "__more__"
+LABEL_W = 86
+LABEL_H = 46
 
 
 class RingMenu(QWidget):
@@ -33,11 +37,35 @@ class RingMenu(QWidget):
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool | Qt.Popup,
         )
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self._actions = actions
+        self._all = list(actions)
+        self._page = 0
+        self._actions = self._page_items()
         self._hover: int | None = None
         size = OUTER_R * 2 + 24
         self.setFixedSize(size, size)
         self.setMouseTracking(True)
+
+    # -- paging -------------------------------------------------------------
+    @property
+    def pages(self) -> int:
+        n = len(self._all)
+        return 1 if n <= PAGE_SIZE else -(-n // (PAGE_SIZE - 1))
+
+    def _page_items(self) -> list[Action]:
+        """Slices on the current page. Over PAGE_SIZE actions, each page shows
+        PAGE_SIZE-1 of them plus a 'More' slice that cycles to the next page."""
+        if len(self._all) <= PAGE_SIZE:
+            return list(self._all)
+        per = PAGE_SIZE - 1
+        items = list(self._all[self._page * per:(self._page + 1) * per])
+        items.append(Action(MORE_ID, "More \u203a", frozenset(), ""))
+        return items
+
+    def _next_page(self):
+        self._page = (self._page + 1) % self.pages
+        self._actions = self._page_items()
+        self._hover = None
+        self.update()
 
     # -- geometry helpers ---------------------------------------------------
     def _norm(self, pos) -> tuple[float, float]:
@@ -74,15 +102,18 @@ class RingMenu(QWidget):
 
             # label at the mid-angle, halfway between dead zone and edge
             mid = slice_mid_angle(i, n)
-            r = (DEAD_R + OUTER_R) / 2
+            r = (DEAD_R + OUTER_R) / 2 + 6
             lx = cx + r * math.sin(mid)
             ly = cy - r * math.cos(mid)
             p.setPen(TEXT)
             font = p.font()
-            font.setPointSize(8)
+            font.setPointSize(9)
             p.setFont(font)
-            p.drawText(int(lx) - 70, int(ly) - 8, 140, 16,
-                       Qt.AlignCenter, f"{i + 1}. {action.label}")
+            # Fixed box narrower than the slice chord at this radius, so labels
+            # in neighbouring slices can never touch; long labels wrap to 2 lines.
+            p.drawText(QRect(int(lx) - LABEL_W // 2, int(ly) - LABEL_H // 2,
+                             LABEL_W, LABEL_H),
+                       Qt.AlignCenter | Qt.TextWordWrap, f"{i + 1}\n{action.label}")
 
         # centre dismiss disc
         p.setBrush(BG)
@@ -94,6 +125,11 @@ class RingMenu(QWidget):
         p.setFont(font)
         p.drawText(int(cx - DEAD_R), int(cy - DEAD_R), DEAD_R * 2, DEAD_R * 2,
                    Qt.AlignCenter, "X")
+        if self.pages > 1:
+            font.setPointSize(8)
+            p.setFont(font)
+            p.drawText(int(cx - DEAD_R), int(cy + 18), DEAD_R * 2, 16,
+                       Qt.AlignCenter, f"{self._page + 1}/{self.pages}")
         p.end()
 
     # -- events ---------------------------------------------------------------
@@ -122,6 +158,9 @@ class RingMenu(QWidget):
                 self._pick(idx)
 
     def _pick(self, idx: int):
+        if self._actions[idx].id == MORE_ID:
+            self._next_page()
+            return
         self.picked.emit(self._actions[idx].id)
         self.close()
 

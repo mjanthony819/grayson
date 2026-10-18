@@ -179,6 +179,22 @@ class GraysonApp:
                 self.tray.showMessage("Grayson", "Could not read those times.",
                                       QSystemTrayIcon.Warning, 3000)
                 return
+        if "crop" in action.params:
+            text, ok = QInputDialog.getText(
+                None, "Grayson - crop",
+                "Percent to remove from left, top, right, bottom (e.g. 10, 0, 10, 20):",
+                text="10, 10, 10, 10")
+            if not ok:
+                return
+            try:
+                vals = [float(x) for x in text.split(",")]
+                if len(vals) != 4:
+                    raise ValueError
+                params = dict(zip(("left", "top", "right", "bottom"), vals))
+            except ValueError:
+                self.tray.showMessage("Grayson", "Give four numbers, comma separated.",
+                                      QSystemTrayIcon.Warning, 3000)
+                return
         self._worker = _Worker(action_id, self._paths, params)
         self._worker.done.connect(self._on_done)
         self._worker.failed.connect(self._on_failed)
