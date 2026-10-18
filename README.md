@@ -13,6 +13,8 @@
 Copy a file, tap <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>, and a ring menu opens at
 your cursor with everything you can do to that file. Pick a slice. Done.</p>
 
+<p align="center"><a href="https://mjanthony819.github.io/grayson/"><b>Download page</b></a> &middot; <a href="../../releases/latest"><b>Latest release</b></a></p>
+
 ---
 
 <p align="center"><img src="assets/ring-image.png" alt="Grayson ring menu for an image" width="380"/></p>
@@ -160,6 +162,12 @@ attaches both to releases.
 Python - PySide6 (ring menu, tray) - pynput (global hotkey) - Pillow (images) -
 PyMuPDF (PDF) - python-docx / Markdown - LibreOffice (Office, external) - ffmpeg via imageio-ffmpeg (audio/video) - PyInstaller (packaging) -
 pytest + GitHub Actions (CI).
+
+## License
+
+Grayson is [MIT licensed](LICENSE). Bundled third-party engines keep their own
+licenses: ffmpeg (LGPL/GPL, pulled in via `imageio-ffmpeg`), LibreOffice
+(MPL 2.0, external - install it yourself).
 
 ---
 
