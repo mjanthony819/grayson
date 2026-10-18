@@ -117,3 +117,80 @@ def audio_to_wav(src, dst, **_):
 def audio_to_ogg(src, dst, **_):
     _run(["-i", str(src), "-c:a", "libvorbis", "-q:a", "5", str(dst)])
     return Path(dst)
+
+
+def video_to_mkv(src, dst, **_):
+    _run(["-i", str(src), "-c:v", "libx264", "-crf", "20", "-c:a", "aac", str(dst)])
+    return Path(dst)
+
+
+def video_to_mov(src, dst, **_):
+    _run(["-i", str(src), "-c:v", "libx264", "-crf", "20", "-c:a", "aac",
+          "-pix_fmt", "yuv420p", str(dst)])
+    return Path(dst)
+
+
+def video_to_avi(src, dst, **_):
+    _run(["-i", str(src), "-c:v", "mpeg4", "-q:v", "4", "-c:a", "libmp3lame", str(dst)])
+    return Path(dst)
+
+
+def scale_720p(src, dst, **_):
+    """Downscale to 720 px tall (width keeps the aspect ratio, forced even)."""
+    _run(["-i", str(src), "-vf", "scale=-2:720", "-c:v", "libx264", "-crf", "23",
+          "-c:a", "aac", str(dst)])
+    return Path(dst)
+
+
+def mute(src, dst, **_):
+    _run(["-i", str(src), "-an", "-c:v", "copy", str(dst)])
+    return Path(dst)
+
+
+def extract_wav(src, dst, **_):
+    _run(["-i", str(src), "-vn", "-c:a", "pcm_s16le", str(dst)])
+    return Path(dst)
+
+
+def audio_to_flac(src, dst, **_):
+    _run(["-i", str(src), "-c:a", "flac", str(dst)])
+    return Path(dst)
+
+
+def audio_to_m4a(src, dst, **_):
+    _run(["-i", str(src), "-vn", "-c:a", "aac", "-b:a", "192k", str(dst)])
+    return Path(dst)
+
+
+def audio_to_aac(src, dst, **_):
+    _run(["-i", str(src), "-vn", "-c:a", "aac", "-b:a", "192k", str(dst)])
+    return Path(dst)
+
+
+def audio_to_opus(src, dst, **_):
+    _run(["-i", str(src), "-c:a", "libopus", "-b:a", "128k", str(dst)])
+    return Path(dst)
+
+
+def compress_audio(src, dst, **_):
+    """Small spoken-word/music file: MP3 at 96 kbit/s."""
+    _run(["-i", str(src), "-vn", "-c:a", "libmp3lame", "-b:a", "96k", str(dst)])
+    return Path(dst)
+
+
+def merge_audio(srcs, dst, **_):
+    """Join audio files end to end. Re-encodes (the inputs may differ in
+    codec), using the default encoder for the output extension."""
+    if isinstance(srcs, (str, Path)):
+        srcs = [srcs]
+    if len(srcs) < 2:
+        raise ValueError("merge needs at least two audio files")
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+        for s in srcs:
+            f.write("file '" + str(Path(s).resolve()).replace("'", "'\\''") + "'\n")
+        list_file = f.name
+    try:
+        _run(["-f", "concat", "-safe", "0", "-i", list_file, str(dst)])
+    finally:
+        os.unlink(list_file)
+    return Path(dst)
