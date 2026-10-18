@@ -7,6 +7,11 @@ import pytest
 pytestmark = pytest.mark.skipif(
     importlib.util.find_spec("PySide6") is None, reason="PySide6 not installed")
 
+try:  # Qt shared libraries can be missing even when the wheel is installed
+    from PySide6.QtWidgets import QApplication  # noqa: F401
+except Exception as exc:  # pragma: no cover
+    pytest.skip(f"Qt runtime unavailable: {exc}", allow_module_level=True)
+
 
 def test_ring_menu_offscreen(tmp_path):
     import os
