@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grayson — the offline file converter for Windows</title>
+<meta name="description" content="Copy a file, press one hotkey, and a ring menu offers everything you can do to it. Fully offline, free and open source.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340;0,9..144,480;0,9..144,560;1,9..144,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+(function(){var t=null;try{t=localStorage.getItem('theme')}catch(e){}
+if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
+document.documentElement.setAttribute('data-theme',t)})();
+</script>
+<style>
+:root{--bg:#fdfdfc;--bg-soft:#f5f5f2;--ink:#171a21;--ink-2:#5a6070;--line:#e6e4de;--accent:#2f5fe0;--accent-ink:#2f5fe0;--card:#ffffff;--shadow:0 1px 2px rgba(23,26,33,.05),0 8px 32px rgba(23,26,33,.06)}
+[data-theme="dark"]{--bg:#0b0e14;--bg-soft:#10141d;--ink:#e8eaf1;--ink-2:#9aa2b5;--line:#232936;--accent:#6f93ff;--accent-ink:#8aa7ff;--card:#12161f;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.35)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Instrument Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;font-size:16.5px;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
+::selection{background:var(--accent);color:#fff}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+a{color:var(--accent-ink);text-decoration:none}
+a:hover{text-decoration:underline}
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:28px;height:60px}
+.brand{font-family:'Fraunces',serif;font-weight:560;font-size:19px;letter-spacing:.01em;color:var(--ink)}
+.brand:hover{text-decoration:none}
+.navlinks{display:flex;gap:22px;margin-left:auto;font-size:14.5px;color:var(--ink-2)}
+.navlinks a{color:var(--ink-2)}
+.navlinks a:hover{color:var(--ink);text-decoration:none}
+@media(max-width:640px){.navlinks a:not(:last-child){display:none}}
+.toggle{margin-left:8px;background:none;border:1px solid var(--line);border-radius:999px;width:36px;height:36px;display:grid;place-items:center;cursor:pointer;color:var(--ink-2)}
+.toggle:hover{color:var(--ink);border-color:var(--ink-2)}
+.toggle svg{width:16px;height:16px}
+[data-theme="light"] .moon{display:block}[data-theme="light"] .sun{display:none}
+[data-theme="dark"] .moon{display:none}[data-theme="dark"] .sun{display:block}
+.hero{padding:96px 0 72px;text-align:left;position:relative}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:22px}
+h1{font-family:'Fraunces',serif;font-weight:480;font-size:clamp(40px,6vw,68px);line-height:1.04;letter-spacing:-.015em;max-width:14em}
+h1 em{font-style:italic;font-weight:400;color:var(--accent-ink)}
+.lede{font-size:19px;color:var(--ink-2);max-width:34em;margin-top:24px}
+.cta{display:flex;gap:14px;margin-top:36px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:9px;padding:13px 24px;border-radius:999px;font-weight:600;font-size:15.5px;transition:transform .15s,box-shadow .15s}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+.btn.primary{background:var(--accent);color:#fff;box-shadow:0 4px 18px color-mix(in srgb,var(--accent) 35%,transparent)}
+[data-theme="dark"] .btn.primary{color:#0b0e14}
+.btn.ghost{border:1px solid var(--line);color:var(--ink);background:var(--card)}
+.btn.ghost:hover{border-color:var(--ink-2)}
+.meta{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink-2);margin-top:16px}
+.shot{margin:56px 0 8px;text-align:center}
+.shot img{max-width:420px;width:100%;border-radius:20px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.shot figcaption{font-size:13.5px;color:var(--ink-2);margin-top:14px}
+section{padding:72px 0;border-top:1px solid var(--line)}
+h2{font-family:'Fraunces',serif;font-weight:480;font-size:clamp(28px,3.6vw,40px);letter-spacing:-.01em;line-height:1.12;margin-bottom:14px}
+.sub{color:var(--ink-2);max-width:38em;margin-bottom:40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:var(--shadow)}
+.card h3{font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:16.5px;margin-bottom:8px}
+.card .k{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent-ink);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:10px}
+.card p{font-size:14.5px;color:var(--ink-2)}
+.steps{counter-reset:s;display:grid;gap:0}
+.step{display:flex;gap:22px;padding:26px 0;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:none}
+.step::before{counter-increment:s;content:counter(s,decimal-leading-zero);font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent-ink);padding-top:5px;min-width:34px}
+.step h3{font-size:17px;font-weight:600;margin-bottom:5px}
+.step p{color:var(--ink-2);font-size:15px}
+code,kbd{font-family:'IBM Plex Mono',monospace;font-size:.86em;background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+.note{display:flex;gap:14px;background:var(--bg-soft);border:1px solid var(--line);border-radius:16px;padding:20px 22px;font-size:14.5px;color:var(--ink-2);margin-top:28px}
+.note b{color:var(--ink)}
+ul.tight{list-style:none}
+ul.tight li{padding:10px 0 10px 26px;position:relative;color:var(--ink-2);font-size:15px;border-bottom:1px solid var(--line)}
+ul.tight li:last-child{border-bottom:none}
+ul.tight li::before{content:"—";position:absolute;left:0;color:var(--accent-ink)}
+.dl{background:var(--bg-soft);text-align:center}
+.dl .sub{margin-left:auto;margin-right:auto}
+footer{padding:48px 0 64px;border-top:1px solid var(--line);font-size:14px;color:var(--ink-2)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:center}
+footer .links{display:flex;gap:20px}
+@media(max-width:640px){.hero{padding:64px 0 48px}section{padding:52px 0}}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+<a class="brand" href="#">Grayson</a>
+<div class="navlinks">
+<a href="#converts">What it converts</a>
+<a href="#how">How it works</a>
+<a href="#download">Download</a>
+<a href="https://github.com/mjanthony819/grayson">GitHub</a>
+<button class="toggle" id="themeToggle" aria-label="Toggle light and dark theme">
+<svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+</button>
+</div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+<p class="eyebrow">Grayson · Windows · Free &amp; open source</p>
+<h1>Copy a file. Press one hotkey. <em>Done.</em></h1>
+<p class="lede">Grayson is a zero-click, fully offline file converter. Copy anything in Explorer, tap <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>, and a ring menu opens at your cursor with exactly the things you can do to that file. Pick a slice. That's the whole interface.</p>
+<div class="cta">
+<a class="btn primary" href="https://github.com/mjanthony819/grayson/releases/download/v0.2.1/Grayson-Setup.exe">Download for Windows</a>
+<a class="btn ghost" href="https://github.com/mjanthony819/grayson">View on GitHub</a>
+</div>
+<p class="meta">v0.2.1 · installer, no admin needed · portable zip also available · MIT license</p>
+<figure class="shot">
+<img src="https://raw.githubusercontent.com/mjanthony819/grayson/main/assets/ring-image.png" alt="The Grayson ring menu open over an image file, offering conversion slices">
+<figcaption>The ring for an image file. Only actions that fit the file appear; more than eight page through under "More".</figcaption>
+</figure>
+</div></header>
+
+<section id="converts"><div class="wrap">
+<h2>One ring, every conversion.</h2>
+<p class="sub">Everything runs on your machine. No upload, no account, no watermark, no conversion allowance. Output lands next to the original as <code>name-grayson.ext</code> and never overwrites anything.</p>
+<div class="grid">
+<div class="card"><span class="k">Images</span><h3>PNG, JPG, WebP, AVIF, HEIC…</h3><p>Convert between nine formats, resize, compress, grayscale, rotate, crop, or fold a set of images into a PDF or Word doc.</p></div>
+<div class="card"><span class="k">Video</span><h3>MP4, WebM, GIF, MKV…</h3><p>Convert, compress, scale to 720p, strip audio, extract MP3 or WAV, trim and merge.</p></div>
+<div class="card"><span class="k">Audio</span><h3>MP3, WAV, FLAC, Opus…</h3><p>Convert between eight formats, compress, trim and merge.</p></div>
+<div class="card"><span class="k">PDF</span><h3>Merge, split, shrink</h3><p>Combine PDFs, split them, compress, export pages as images, or pull the text out.</p></div>
+<div class="card"><span class="k">Office</span><h3>Word, PowerPoint, Excel</h3><p>To and from PDF, ODT, HTML and more. Uses LibreOffice (free, one-time install) or falls back to Microsoft Office if you have it.</p></div>
+<div class="card"><span class="k">Command line</span><h3>Scriptable engine</h3><p><code>grayson a.pdf b.pdf --action pdf-merge</code> — the CLI and the ring share one engine, so behaviour is identical.</p></div>
+</div>
+</div></section>
+
+<section id="how"><div class="wrap">
+<h2>How it works</h2>
+<p class="sub">Three ways in, one way out. Whichever you pick, the file never leaves your PC.</p>
+<div class="steps">
+<div class="step"><div><h3>Ring menu</h3><p>Copy file(s) in Explorer with <kbd>Ctrl</kbd>+<kbd>C</kbd>, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>. The ring opens at your cursor — click a slice or press its number.</p></div></div>
+<div class="step"><div><h3>Drop zone</h3><p>Prefer the mouse? Drag files straight onto the small Grayson window instead.</p></div></div>
+<div class="step"><div><h3>Command line</h3><p>Batch work and scripts: <code>grayson --list</code> prints every action, and each one takes flags like <code>--param start=5</code>.</p></div></div>
+</div>
+<div class="note"><div><b>A heads-up, honestly.</b> Grayson is Windows-focused — the engine is cross-platform, but the hotkey flow is packaged for Windows. Office conversions need LibreOffice installed. The installer isn't code-signed, so SmartScreen will warn once: click <b>More info → Run anyway</b>.</div></div>
+</div></section>
+
+<section class="dl" id="download"><div class="wrap">
+<h2>Get Grayson</h2>
+<p class="sub">Windows 10 or 11. The installer sets everything up per-user — no admin rights needed — and can be uninstalled from Settings → Apps like any other app.</p>
+<div class="cta" style="justify-content:center">
+<a class="btn primary" href="https://github.com/mjanthony819/grayson/releases/download/v0.2.1/Grayson-Setup.exe">Download the installer</a>
+<a class="btn ghost" href="https://github.com/mjanthony819/grayson/releases/download/v0.2.1/Grayson-windows.zip">Portable zip instead</a>
+</div>
+<p class="meta">Prefer source? <code>pip install .</code> from the repo. 54 tests, CI-built releases.</p>
+</div></section>
+
+<footer><div class="wrap">
+<span>Grayson · built by <a href="https://github.com/mjanthony819">M J Anthony</a> · MIT license</span>
+<div class="links">
+<a href="https://github.com/mjanthony819/grayson">Source</a>
+<a href="https://github.com/mjanthony819/grayson/releases">Releases</a>
+<a href="https://github.com/mjanthony819/grayson/issues">Report an issue</a>
+</div>
+</div></footer>
+
+<script>
+document.getElementById('themeToggle').addEventListener('click',function(){
+var h=document.documentElement;var n=h.getAttribute('data-theme')==='dark'?'light':'dark';
+h.setAttribute('data-theme',n);try{localStorage.setItem('theme',n)}catch(e){}});
+</script>
+</body>
+</html>
