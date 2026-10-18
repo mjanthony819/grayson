@@ -15,23 +15,46 @@ your cursor with everything you can do to that file. Pick a slice. Done.</p>
 
 ---
 
+<p align="center"><img src="assets/ring-image.png" alt="Grayson ring menu for an image" width="380"/></p>
+
 ## What it does
+
+The ring shows only what fits the file you selected. More than 8 actions? The
+8th slice is **More ›** and pages through the rest (labels never collide).
 
 | You give it | The ring offers |
 |---|---|
-| Images (png, jpg, webp, bmp, tiff, gif) | Convert to PNG / JPG / WebP, resize 50%, compress, grayscale, images to PDF |
-| Video (mp4, mkv, mov, webm, avi) | Convert to MP4 / WebM / GIF, compress, extract audio (MP3), trim, merge videos |
-| Audio (mp3, wav, ogg, m4a, flac, aac) | Convert to MP3 / WAV / OGG, trim |
-| PDF | Merge, split into pages, compress, render pages to PNG |
+| **Images** (png, jpg, webp, bmp, tiff, gif, heic, avif, ico) | To PNG / JPG / WebP / AVIF / HEIC / BMP / TIFF / GIF / ICO, resize 50%, compress, grayscale, rotate 90, crop (square, 16:9, custom %), images to PDF, images to Word |
+| **Video** (mp4, mkv, mov, webm, avi, m4v, wmv, flv, mpg, 3gp) | To MP4 / WebM / GIF / MKV / MOV / AVI, compress, scale to 720p, remove audio, extract MP3 or WAV, trim, merge |
+| **Audio** (mp3, wav, ogg, m4a, flac, aac, opus, wma, aiff) | To MP3 / WAV / OGG / FLAC / M4A / AAC / Opus, compress, trim, merge |
+| **PDF** | Merge, split, compress, pages to PNG or JPG, extract text, to Word (text only) |
+| **Word** (docx, doc, odt, rtf) | To PDF / DOCX / ODT / RTF / text / HTML, pages to PNG |
+| **PowerPoint** (pptx, ppt, odp) | To PDF / PPTX / ODP, slides to PNG |
+| **Excel / CSV** (xlsx, xls, ods, csv) | To PDF / XLSX / ODS / CSV / HTML |
+| **Text** (txt, md, html) | To PDF, HTML, plain text (built in), to Word |
 
 Every conversion runs **locally** - no upload, no account, no watermark, no
 conversion allowance. Output lands next to the original as `name-grayson.ext`
-and never overwrites anything.
+and never overwrites anything. `grayson --list` prints every action.
+
+### Office documents need LibreOffice (or Microsoft Office)
+
+Word / PowerPoint / Excel conversions use **LibreOffice** in headless mode. It
+is *not* bundled (it would add about 350 MB), so install it once, free:
+
+```powershell
+winget install TheDocumentFoundation.LibreOffice
+```
+
+Grayson finds it automatically (`GRAYSON_SOFFICE`, the standard install
+folders, or PATH). If LibreOffice is missing but Microsoft Office is installed,
+"to PDF" falls back to Word / PowerPoint / Excel through COM. Images, video,
+audio, PDF and text/Markdown/HTML conversions need nothing extra.
 
 ## Install
 
 **Easiest:** download `Grayson-windows.zip` from the latest
-[Actions run](../../actions) (or a Release, when tagged), unzip anywhere, run
+[Releases page](../../releases/latest), unzip anywhere, run
 `Grayson.exe`. ffmpeg is bundled, nothing else to install.
 
 **From source** (Python 3.10+):
@@ -66,13 +89,13 @@ grayson clip.mp4 --action vid-trim --param start=5 --param end=12
 ```
 Explorer copy / drag-and-drop
         |
-   kind detection  (grayson/core.py - extension -> image | video | audio | pdf)
+   kind detection  (grayson/core.py - extension -> image | video | audio | pdf | word | slides | sheet | text)
         |
    action registry (one declarative table -> which actions fit the selection)
         |
-   ring menu (PySide6, QPainter donut slices, geometry unit-tested headless)
+   ring menu (PySide6, QPainter donut slices, paged past 8 actions)
         |
-   conversion engine - Pillow (images) | PyMuPDF (PDF) | ffmpeg (audio/video)
+   conversion engine - Pillow (images) | PyMuPDF (PDF, text) | ffmpeg (audio/video) | LibreOffice (Office)
         |
    unique output name next to the source -> tray notification
 ```
@@ -88,8 +111,9 @@ pip install -e ".[dev]"
 python -m pytest tests/ -q
 ```
 
-30 tests cover kind detection, the action registry, ring slice geometry,
-every image/PDF conversion, ffmpeg round-trips (generated clips) and the CLI.
+54 tests cover kind detection, the action registry, ring slice geometry and
+paging, every image/PDF/text conversion, ffmpeg round-trips (generated clips),
+real LibreOffice round-trips (docx/pptx/xlsx) and the CLI.
 GUI painting is smoke-tested offscreen with Qt's `offscreen` platform.
 
 CI (`.github/workflows/build.yml`) runs the tests on Ubuntu, then builds the
@@ -104,14 +128,20 @@ attaches it to releases.
   where you asked (stream copy snaps to keyframes) - slower on long files.
 - PDF compress downsamples large embedded images to ~1500px JPEG; it is not a
   lossless archiver.
-- Office documents (.docx/.pptx) are out of scope - real conversion there
-  needs Word or LibreOffice installed, and Grayson stays self-contained.
+- Office conversions need LibreOffice (or Office) installed; first run of
+  LibreOffice is slow (several seconds per file). Complex layouts can shift.
+- **PDF to Word is text only** - no layout, tables or images, and scanned PDFs
+  have no text layer (there is no OCR).
+- HEIC and AVIF output depend on `pillow-heif` / Pillow's AVIF support.
+- **Not yet tested on a real Windows machine**: the .exe, the hotkey, the
+  Explorer clipboard flow and the Word/PowerPoint COM fallback. The engine and
+  the ring (rendered offscreen) are tested on Linux and in CI.
 - ffmpeg is LGPL/GPL; the Windows bundle pulls it in via `imageio-ffmpeg`.
 
 ## Stack
 
 Python - PySide6 (ring menu, tray) - pynput (global hotkey) - Pillow (images) -
-PyMuPDF (PDF) - ffmpeg via imageio-ffmpeg (audio/video) - PyInstaller (packaging) -
+PyMuPDF (PDF) - python-docx / Markdown - LibreOffice (Office, external) - ffmpeg via imageio-ffmpeg (audio/video) - PyInstaller (packaging) -
 pytest + GitHub Actions (CI).
 
 ---
