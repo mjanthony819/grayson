@@ -6,7 +6,7 @@ unit-testable on any platform.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -14,24 +14,32 @@ from typing import Callable, Optional
 # File kinds
 # ---------------------------------------------------------------------------
 
-IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif"}
-VIDEO_EXTS = {".mp4", ".mkv", ".mov", ".webm", ".avi", ".m4v"}
-AUDIO_EXTS = {".mp3", ".wav", ".ogg", ".m4a", ".flac", ".aac"}
-PDF_EXTS = {".pdf"}
+EXTS_BY_KIND: dict[str, set[str]] = {
+    "image": {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif",
+              ".heic", ".heif", ".avif", ".ico"},
+    "video": {".mp4", ".mkv", ".mov", ".webm", ".avi", ".m4v", ".wmv", ".flv",
+              ".mpg", ".mpeg", ".3gp"},
+    "audio": {".mp3", ".wav", ".ogg", ".m4a", ".flac", ".aac", ".opus", ".wma",
+              ".aiff", ".aif"},
+    "pdf": {".pdf"},
+    "word": {".docx", ".doc", ".odt", ".rtf"},
+    "slides": {".pptx", ".ppt", ".odp"},
+    "sheet": {".xlsx", ".xls", ".ods", ".csv"},
+    "text": {".txt", ".md", ".markdown", ".html", ".htm"},
+}
+IMAGE_EXTS = EXTS_BY_KIND["image"]
+VIDEO_EXTS = EXTS_BY_KIND["video"]
+AUDIO_EXTS = EXTS_BY_KIND["audio"]
+PDF_EXTS = EXTS_BY_KIND["pdf"]
 
-KIND_BY_EXT: dict[str, str] = {}
-for _e in IMAGE_EXTS:
-    KIND_BY_EXT[_e] = "image"
-for _e in VIDEO_EXTS:
-    KIND_BY_EXT[_e] = "video"
-for _e in AUDIO_EXTS:
-    KIND_BY_EXT[_e] = "audio"
-for _e in PDF_EXTS:
-    KIND_BY_EXT[_e] = "pdf"
+KIND_BY_EXT: dict[str, str] = {
+    e: kind for kind, exts in EXTS_BY_KIND.items() for e in exts
+}
 
 
 def kind_of(path: str | Path) -> Optional[str]:
-    """Return 'image' | 'video' | 'audio' | 'pdf' | None for a file path."""
+    """Return the kind ('image', 'video', 'audio', 'pdf', 'word', 'slides',
+    'sheet', 'text') for a file path, or None if Grayson does not know it."""
     return KIND_BY_EXT.get(Path(path).suffix.lower())
 
 
@@ -44,12 +52,13 @@ def kind_of(path: str | Path) -> Optional[str]:
 class Action:
     """One thing Grayson can do to a set of files.
 
-    kinds:    which file kinds this action accepts (a single kind, or 'any'
-              for actions like images->PDF that take several of one kind).
+    kinds:    which file kinds this action accepts.
     multi:    True if the action can take more than one input file.
-    needs:    'ffmpeg' if the action shells out to ffmpeg.
+    needs:    external program the action shells out to ('ffmpeg', 'office').
     params:   names of extra parameters the GUI/CLI will ask for.
     handler:  dotted name of the function in grayson.convert.* that runs it.
+    ext:      output extension (None keeps the source extension).
+    dir_out:  True if the output is a folder of files (split, pages -> PNG).
     """
 
     id: str
@@ -59,38 +68,102 @@ class Action:
     multi: bool = False
     needs: Optional[str] = None
     params: tuple[str, ...] = ()
+    ext: Optional[str] = None
+    dir_out: bool = False
 
+
+def _a(id, label, kind, handler, ext=None, **kw) -> Action:
+    return Action(id, label, frozenset({kind}), handler, ext=ext, **kw)
+
+
+FF = "ffmpeg"
+OF = "office"
 
 ACTIONS: list[Action] = [
     # images ----------------------------------------------------------------
-    Action("img-to-png", "Convert to PNG", frozenset({"image"}), "images.to_png"),
-    Action("img-to-jpg", "Convert to JPG", frozenset({"image"}), "images.to_jpg"),
-    Action("img-to-webp", "Convert to WebP", frozenset({"image"}), "images.to_webp"),
-    Action("img-resize-50", "Resize 50%", frozenset({"image"}), "images.resize_half"),
-    Action("img-compress", "Compress", frozenset({"image"}), "images.compress"),
-    Action("img-grayscale", "Grayscale", frozenset({"image"}), "images.grayscale"),
-    Action("imgs-to-pdf", "Images to PDF", frozenset({"image"}), "images.to_pdf", multi=True),
+    _a("img-to-png", "To PNG", "image", "images.to_png", "png"),
+    _a("img-to-jpg", "To JPG", "image", "images.to_jpg", "jpg"),
+    _a("img-to-webp", "To WebP", "image", "images.to_webp", "webp"),
+    _a("img-resize-50", "Resize 50%", "image", "images.resize_half"),
+    _a("img-compress", "Compress", "image", "images.compress"),
+    _a("imgs-to-pdf", "Images to PDF", "image", "images.to_pdf", "pdf", multi=True),
+    _a("img-to-avif", "To AVIF", "image", "images.to_avif", "avif"),
+    _a("img-to-heic", "To HEIC", "image", "images.to_heic", "heic"),
+    _a("img-to-bmp", "To BMP", "image", "images.to_bmp", "bmp"),
+    _a("img-to-tiff", "To TIFF", "image", "images.to_tiff", "tiff"),
+    _a("img-to-gif", "To GIF", "image", "images.to_gif", "gif"),
+    _a("img-to-ico", "To ICO (icon)", "image", "images.to_ico", "ico"),
+    _a("img-grayscale", "Grayscale", "image", "images.grayscale"),
+    _a("img-rotate", "Rotate 90\u00b0", "image", "images.rotate_90"),
+    _a("img-crop-square", "Crop square", "image", "images.crop_square"),
+    _a("img-crop-16x9", "Crop 16:9", "image", "images.crop_16x9"),
+    _a("img-crop", "Crop (custom %)", "image", "images.crop", params=("crop",)),
+    _a("imgs-to-docx", "Images to Word", "image", "images.to_docx", "docx", multi=True),
     # video -----------------------------------------------------------------
-    Action("vid-to-mp4", "Convert to MP4", frozenset({"video"}), "av.video_to_mp4", needs="ffmpeg"),
-    Action("vid-to-webm", "Convert to WebM", frozenset({"video"}), "av.video_to_webm", needs="ffmpeg"),
-    Action("vid-to-gif", "Convert to GIF", frozenset({"video"}), "av.video_to_gif", needs="ffmpeg"),
-    Action("vid-compress", "Compress video", frozenset({"video"}), "av.compress_video", needs="ffmpeg"),
-    Action("vid-extract-audio", "Extract audio (MP3)", frozenset({"video"}), "av.extract_audio", needs="ffmpeg"),
-    Action("vid-trim", "Trim clip", frozenset({"video"}), "av.trim", needs="ffmpeg", params=("start", "end")),
-    Action("vids-merge", "Merge videos", frozenset({"video"}), "av.merge", multi=True, needs="ffmpeg"),
+    _a("vid-to-mp4", "To MP4", "video", "av.video_to_mp4", "mp4", needs=FF),
+    _a("vid-to-webm", "To WebM", "video", "av.video_to_webm", "webm", needs=FF),
+    _a("vid-to-gif", "To GIF", "video", "av.video_to_gif", "gif", needs=FF),
+    _a("vid-compress", "Compress video", "video", "av.compress_video", "mp4", needs=FF),
+    _a("vid-extract-audio", "Extract MP3", "video", "av.extract_audio", "mp3", needs=FF),
+    _a("vid-trim", "Trim clip", "video", "av.trim", needs=FF, params=("start", "end")),
+    _a("vids-merge", "Merge videos", "video", "av.merge", "mp4", multi=True, needs=FF),
+    _a("vid-to-mkv", "To MKV", "video", "av.video_to_mkv", "mkv", needs=FF),
+    _a("vid-to-mov", "To MOV", "video", "av.video_to_mov", "mov", needs=FF),
+    _a("vid-to-avi", "To AVI", "video", "av.video_to_avi", "avi", needs=FF),
+    _a("vid-720p", "Scale to 720p", "video", "av.scale_720p", "mp4", needs=FF),
+    _a("vid-mute", "Remove audio", "video", "av.mute", "mp4", needs=FF),
+    _a("vid-extract-wav", "Extract WAV", "video", "av.extract_wav", "wav", needs=FF),
     # audio -----------------------------------------------------------------
-    Action("aud-to-mp3", "Convert to MP3", frozenset({"audio"}), "av.audio_to_mp3", needs="ffmpeg"),
-    Action("aud-to-wav", "Convert to WAV", frozenset({"audio"}), "av.audio_to_wav", needs="ffmpeg"),
-    Action("aud-to-ogg", "Convert to OGG", frozenset({"audio"}), "av.audio_to_ogg", needs="ffmpeg"),
-    Action("aud-trim", "Trim audio", frozenset({"audio"}), "av.trim", needs="ffmpeg", params=("start", "end")),
+    _a("aud-to-mp3", "To MP3", "audio", "av.audio_to_mp3", "mp3", needs=FF),
+    _a("aud-to-wav", "To WAV", "audio", "av.audio_to_wav", "wav", needs=FF),
+    _a("aud-to-ogg", "To OGG", "audio", "av.audio_to_ogg", "ogg", needs=FF),
+    _a("aud-to-flac", "To FLAC", "audio", "av.audio_to_flac", "flac", needs=FF),
+    _a("aud-to-m4a", "To M4A", "audio", "av.audio_to_m4a", "m4a", needs=FF),
+    _a("aud-to-aac", "To AAC", "audio", "av.audio_to_aac", "aac", needs=FF),
+    _a("aud-to-opus", "To Opus", "audio", "av.audio_to_opus", "opus", needs=FF),
+    _a("aud-trim", "Trim audio", "audio", "av.trim", needs=FF, params=("start", "end")),
+    _a("auds-merge", "Merge audio", "audio", "av.merge_audio", multi=True, needs=FF),
+    _a("aud-compress", "Compress audio", "audio", "av.compress_audio", "mp3", needs=FF),
     # pdf -------------------------------------------------------------------
-    Action("pdf-merge", "Merge PDFs", frozenset({"pdf"}), "pdf.merge", multi=True),
-    Action("pdf-split", "Split into pages", frozenset({"pdf"}), "pdf.split_pages"),
-    Action("pdf-compress", "Compress PDF", frozenset({"pdf"}), "pdf.compress"),
-    Action("pdf-to-png", "Pages to PNG", frozenset({"pdf"}), "pdf.pages_to_png"),
+    _a("pdf-merge", "Merge PDFs", "pdf", "pdf.merge", "pdf", multi=True),
+    _a("pdf-split", "Split pages", "pdf", "pdf.split_pages", dir_out=True),
+    _a("pdf-compress", "Compress PDF", "pdf", "pdf.compress", "pdf"),
+    _a("pdf-to-png", "Pages to PNG", "pdf", "pdf.pages_to_png", dir_out=True),
+    _a("pdf-to-jpg", "Pages to JPG", "pdf", "pdf.pages_to_jpg", dir_out=True),
+    _a("pdf-to-txt", "Extract text", "pdf", "pdf.to_txt", "txt"),
+    _a("pdf-to-docx", "To Word (text)", "pdf", "pdf.to_docx", "docx"),
+    # word processor documents (docx, doc, odt, rtf) ----------------------
+    _a("word-to-pdf", "To PDF", "word", "docs.to_pdf", "pdf", needs=OF),
+    _a("word-to-docx", "To Word (.docx)", "word", "docs.to_docx", "docx", needs=OF),
+    _a("word-to-odt", "To ODT", "word", "docs.to_odt", "odt", needs=OF),
+    _a("word-to-rtf", "To RTF", "word", "docs.to_rtf", "rtf", needs=OF),
+    _a("word-to-txt", "To text", "word", "docs.to_txt", "txt", needs=OF),
+    _a("word-to-html", "To HTML", "word", "docs.to_html", "html", needs=OF),
+    _a("word-to-png", "Pages to PNG", "word", "docs.pages_to_png", needs=OF, dir_out=True),
+    # presentations (pptx, ppt, odp) ----------------------------------------
+    _a("slides-to-pdf", "To PDF", "slides", "docs.to_pdf", "pdf", needs=OF),
+    _a("slides-to-pptx", "To PowerPoint", "slides", "docs.to_pptx", "pptx", needs=OF),
+    _a("slides-to-odp", "To ODP", "slides", "docs.to_odp", "odp", needs=OF),
+    _a("slides-to-png", "Slides to PNG", "slides", "docs.pages_to_png", needs=OF, dir_out=True),
+    # spreadsheets (xlsx, xls, ods, csv) ------------------------------------
+    _a("sheet-to-pdf", "To PDF", "sheet", "docs.to_pdf", "pdf", needs=OF),
+    _a("sheet-to-xlsx", "To Excel (.xlsx)", "sheet", "docs.to_xlsx", "xlsx", needs=OF),
+    _a("sheet-to-ods", "To ODS", "sheet", "docs.to_ods", "ods", needs=OF),
+    _a("sheet-to-csv", "To CSV", "sheet", "docs.to_csv", "csv", needs=OF),
+    _a("sheet-to-html", "To HTML", "sheet", "docs.to_html", "html", needs=OF),
+    # plain text, markdown, html (no Office needed for PDF/HTML/text) -------
+    _a("text-to-pdf", "To PDF", "text", "text.to_pdf", "pdf"),
+    _a("text-to-html", "To HTML", "text", "text.to_html", "html"),
+    _a("text-to-txt", "To plain text", "text", "text.to_txt", "txt"),
+    _a("text-to-docx", "To Word (.docx)", "text", "text.to_docx", "docx", needs=OF),
 ]
 
 ACTION_BY_ID: dict[str, Action] = {a.id: a for a in ACTIONS}
+assert len(ACTION_BY_ID) == len(ACTIONS), "duplicate action id"
+
+# Multi-file actions that make no sense for one file (a single image -> PDF
+# or Word is still useful, so those two are not listed).
+_NEEDS_SEVERAL = {"pdf-merge", "vids-merge", "auds-merge"}
 
 
 def actions_for(paths: list[str | Path]) -> list[Action]:
@@ -98,8 +171,8 @@ def actions_for(paths: list[str | Path]) -> list[Action]:
 
     Rules:
       * every selected file must be a known kind;
-      * if kinds are mixed, only nothing is offered (keeps the ring honest);
-      * single-file selection hides multi-only actions like merging.
+      * if kinds are mixed, nothing is offered (keeps the ring honest);
+      * single-file selection hides merge actions.
     """
     if not paths:
         return []
@@ -111,10 +184,8 @@ def actions_for(paths: list[str | Path]) -> list[Action]:
     for a in ACTIONS:
         if kind not in a.kinds:
             continue
-        if a.multi and len(paths) == 1 and a.id in {"pdf-merge", "vids-merge", "imgs-to-pdf"}:
-            # merging/converting one file into a container of many is pointless
-            if a.id != "imgs-to-pdf":  # one image -> pdf is still useful
-                continue
+        if a.id in _NEEDS_SEVERAL and len(paths) == 1:
+            continue
         out.append(a)
     return out
 

@@ -14,18 +14,6 @@ from pathlib import Path
 from . import __version__
 from .core import ACTIONS, ACTION_BY_ID, actions_for, resolve_handler, unique_output
 
-# Actions whose output is a directory of files rather than a single file.
-_DIR_OUTPUT = {"pdf-split", "pdf-to-png"}
-# Default output extension per action (None keeps the source extension).
-_EXT = {
-    "img-to-png": "png", "img-to-jpg": "jpg", "img-to-webp": "webp",
-    "imgs-to-pdf": "pdf",
-    "vid-to-mp4": "mp4", "vid-to-webm": "webm", "vid-to-gif": "gif",
-    "vid-compress": "mp4", "vid-extract-audio": "mp3", "vids-merge": "mp4",
-    "aud-to-mp3": "mp3", "aud-to-wav": "wav", "aud-to-ogg": "ogg",
-    "pdf-merge": "pdf", "pdf-compress": "pdf",
-}
-
 
 def run_action(action_id: str, paths: list[str | Path], params: dict | None = None):
     """Run one action on files; returns the list of written paths.
@@ -37,20 +25,18 @@ def run_action(action_id: str, paths: list[str | Path], params: dict | None = No
     handler = resolve_handler(action.handler)
     paths = [Path(p) for p in paths]
 
-    if action_id in _DIR_OUTPUT:
-        out_dir = unique_output(paths[0], new_ext=None, suffix="-grayson")
-        out_dir = out_dir.with_suffix("")  # strip the kept source suffix
-        written = handler(paths[0] if len(paths) == 1 else paths, out_dir, **params)
-        return list(written)
-
     if action.multi:
-        out = unique_output(paths[0], new_ext=_EXT.get(action_id))
+        out = unique_output(paths[0], new_ext=action.ext)
         handler(paths, out, **params)
         return [out]
 
     written = []
-    for p in paths:  # single-file action applied to a multi-selection
-        out = unique_output(p, new_ext=_EXT.get(action_id))
+    for p in paths:  # single-file action applied to every selected file
+        if action.dir_out:
+            out_dir = unique_output(p, new_ext=None, suffix="-grayson").with_suffix("")
+            written.extend(handler(p, out_dir, **params))
+            continue
+        out = unique_output(p, new_ext=action.ext)
         handler(p, out, **params)
         written.append(out)
     return written
