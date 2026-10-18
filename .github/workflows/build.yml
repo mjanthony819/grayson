@@ -47,12 +47,21 @@ jobs:
       - name: Zip
         shell: pwsh
         run: Compress-Archive -Path dist/Grayson -DestinationPath Grayson-windows.zip
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress --yes
+      - name: Build installer
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\grayson.iss'
+        shell: pwsh
       - uses: actions/upload-artifact@v4
         with:
           name: Grayson-windows
-          path: Grayson-windows.zip
+          path: |
+            Grayson-windows.zip
+            installer-output/Grayson-Setup.exe
       - name: Attach to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: Grayson-windows.zip
+          files: |
+            Grayson-windows.zip
+            installer-output/Grayson-Setup.exe
