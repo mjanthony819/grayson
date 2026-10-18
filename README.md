@@ -53,9 +53,21 @@ audio, PDF and text/Markdown/HTML conversions need nothing extra.
 
 ## Install
 
-**Easiest:** download `Grayson-windows.zip` from the latest
-[Releases page](../../releases/latest), unzip anywhere, run
-`Grayson.exe`. ffmpeg is bundled, nothing else to install.
+**Easiest (installer):** download `Grayson-Setup.exe` from the latest
+[Releases page](../../releases/latest) and run it. It installs Grayson for
+your user (no admin needed), adds a Start menu entry, offers a desktop
+shortcut and an optional "start Grayson when Windows starts" entry, and can
+be uninstalled later from Settings > Apps. If LibreOffice is missing, the
+installer closes with a reminder that Word/PowerPoint/Excel conversions need
+it (image, video, audio, PDF and text conversions work without it).
+
+The installer is **not code-signed**, so Windows SmartScreen will warn
+("Windows protected your PC"). Click **More info -> Run anyway** if you
+trust this repo.
+
+**Portable zip:** download `Grayson-windows.zip` instead, unzip anywhere,
+run `Grayson.exe`. Same app - no installer, no Start menu entry, nothing to
+uninstall.
 
 **From source** (Python 3.10+):
 
@@ -117,8 +129,9 @@ real LibreOffice round-trips (docx/pptx/xlsx) and the CLI.
 GUI painting is smoke-tested offscreen with Qt's `offscreen` platform.
 
 CI (`.github/workflows/build.yml`) runs the tests on Ubuntu, then builds the
-portable `Grayson-windows.zip` with PyInstaller on `windows-latest` and
-attaches it to releases.
+portable `Grayson-windows.zip` with PyInstaller on `windows-latest`, compiles
+`Grayson-Setup.exe` from it with Inno Setup (`installer/grayson.iss`) and
+attaches both to releases.
 
 ## Honest limitations
 
@@ -133,9 +146,13 @@ attaches it to releases.
 - **PDF to Word is text only** - no layout, tables or images, and scanned PDFs
   have no text layer (there is no OCR).
 - HEIC and AVIF output depend on `pillow-heif` / Pillow's AVIF support.
-- **Not yet tested on a real Windows machine**: the .exe, the hotkey, the
+- **Not yet tested on a real Windows machine**: the .exe, the installer
+  (Start menu entry, startup registry key, uninstaller), the hotkey, the
   Explorer clipboard flow and the Word/PowerPoint COM fallback. The engine and
-  the ring (rendered offscreen) are tested on Linux and in CI.
+  the ring (rendered offscreen) are tested on Linux and in CI; the installer
+  is compiled in CI but nobody has run it on real hardware yet.
+- The installer is **unsigned**, so SmartScreen warns. Code-signing
+  certificates cost money; there is none.
 - ffmpeg is LGPL/GPL; the Windows bundle pulls it in via `imageio-ffmpeg`.
 
 ## Stack
