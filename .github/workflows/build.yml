@@ -40,6 +40,8 @@ jobs:
       - name: Bundle
         run: >-
           pyinstaller --noconfirm --windowed --name Grayson
+          --icon assets/grayson.ico
+          --add-data "assets/icon.png;assets"
           --collect-binaries imageio_ffmpeg
           --collect-all pillow_heif --collect-data docx --collect-data pymupdf
           --collect-submodules grayson
