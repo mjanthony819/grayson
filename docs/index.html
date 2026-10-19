@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Grayson — the offline file converter for Windows</title>
 <meta name="description" content="Copy a file, press one hotkey, and a ring menu offers everything you can do to it. Fully offline, free and open source.">
+<link rel="icon" type="image/png" href="icon-tile.png">
+<link rel="apple-touch-icon" href="icon-tile.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Grayson - the offline file converter for Windows">
+<meta property="og:description" content="Copy a file, press one hotkey, and a ring menu offers everything you can do to it. Fully offline, free and open source.">
+<meta property="og:image" content="https://mjanthony819.github.io/grayson/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340;0,9..144,480;0,9..144,560;1,9..144,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -26,6 +33,13 @@ a:hover{text-decoration:underline}
 nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;align-items:center;gap:28px;height:60px}
 .brand{font-family:'Fraunces',serif;font-weight:560;font-size:19px;letter-spacing:.01em;color:var(--ink)}
+.brand{display:flex;align-items:center;gap:9px}
+.brand img{height:26px;width:26px}
+.logo-dark{display:none}
+[data-theme="dark"] .logo-light{display:none}
+[data-theme="dark"] .logo-dark{display:inline-block}
+.hero-logo{margin:0 0 24px}
+.hero-logo img{height:110px;width:auto}
 .brand:hover{text-decoration:none}
 .navlinks{display:flex;gap:22px;margin-left:auto;font-size:14.5px;color:var(--ink-2)}
 .navlinks a{color:var(--ink-2)}
@@ -83,7 +97,7 @@ footer .links{display:flex;gap:20px}
 </head>
 <body>
 <nav><div class="wrap">
-<a class="brand" href="#">Grayson</a>
+<a class="brand" href="#"><img class="logo-light" src="https://raw.githubusercontent.com/mjanthony819/grayson/main/assets/icon.png" alt=""><img class="logo-dark" src="https://raw.githubusercontent.com/mjanthony819/grayson/main/assets/icon-dark.png" alt="">Grayson</a>
 <div class="navlinks">
 <a href="#converts">What it converts</a>
 <a href="#how">How it works</a>
@@ -97,6 +111,7 @@ footer .links{display:flex;gap:20px}
 </div></nav>
 
 <header class="hero"><div class="wrap">
+<p class="hero-logo"><img class="logo-light" src="https://raw.githubusercontent.com/mjanthony819/grayson/main/assets/logo.png" alt="Grayson - convert faster"><img class="logo-dark" src="https://raw.githubusercontent.com/mjanthony819/grayson/main/assets/logo-dark.png" alt="Grayson - convert faster"></p>
 <p class="eyebrow">Grayson · Windows · Free &amp; open source</p>
 <h1>Copy a file. Press one hotkey. <em>Done.</em></h1>
 <p class="lede">Grayson is a zero-click, fully offline file converter. Copy anything in Explorer, tap <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd>, and a ring menu opens at your cursor with exactly the things you can do to that file. Pick a slice. That's the whole interface.</p>
