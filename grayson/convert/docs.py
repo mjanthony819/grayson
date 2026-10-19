@@ -94,19 +94,31 @@ def _com_to_pdf(src: Path, dst: Path) -> Path:
     absent). Untested in Grayson's CI, which has no Office."""
     if os.name != "nt":
         raise OfficeNotFound("no office engine available")
-    app, open_, save = {
-        "word": ("Word.Application", "Documents.Open", "SaveAs2($o,17)"),
-        "slides": ("PowerPoint.Application", "Presentations.Open", "SaveAs($o,32)"),
-        "sheet": ("Excel.Application", "Workbooks.Open", "ExportAsFixedFormat(0,$o)"),
+    app, open_call, save_call = {
+        # Read-only opens with alerts suppressed: a modal prompt (Protected
+        # View, format confirm) would otherwise hang the hidden host forever.
+        "word": ("Word.Application", "Documents.Open($s,$false,$true)", "SaveAs2($o,17)"),
+        "slides": ("PowerPoint.Application", "Presentations.Open($s,$true,$false,$false)", "SaveAs($o,32)"),
+        "sheet": ("Excel.Application", "Workbooks.Open($s,0,$true)", "ExportAsFixedFormat(0,$o)"),
     }[kind_of(src)]
-    ps = (f"$a=New-Object -ComObject {app};try{{$s='{src}';$o='{dst}';"
-          f"$d=$a.{open_}($s);$d.{save};$d.Close()}}finally{{$a.Quit()}}")
+    s_ = str(src).replace("'", "''")  # PowerShell single-quote escaping
+    o_ = str(dst).replace("'", "''")
+    ps = (f"$a=New-Object -ComObject {app};"
+          "try{$a.Visible=$false;"
+          "if($a.psobject.Properties['DisplayAlerts']){$a.DisplayAlerts=0};"
+          f"$s='{s_}';$o='{o_}';$d=$a.{open_call};$d.{save_call};$d.Close()}}"
+          f"finally{{$a.Quit()}}")
     proc = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
                           capture_output=True, text=True, timeout=300,
                           **_NO_WINDOW)
     if proc.returncode != 0 or not Path(dst).exists():
-        raise OfficeNotFound("Neither LibreOffice nor Microsoft Office could convert "
-                             f"this file: {proc.stderr.strip()[:200]}")
+        detail = (proc.stderr or proc.stdout or "").strip()[:200]
+        detail = detail or "the Office app did not answer (it may have shown a prompt)"
+        raise OfficeNotFound(
+            f"Could not convert '{src.name}' to PDF. LibreOffice is not installed "
+            f"and Microsoft Office could not do it either ({detail}). Install "
+            "LibreOffice (free) with 'winget install "
+            "TheDocumentFoundation.LibreOffice', then try again.")
     return Path(dst)
 
 
