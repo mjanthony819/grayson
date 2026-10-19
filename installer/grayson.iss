@@ -5,7 +5,7 @@
 ; NOT code-signed: Windows SmartScreen will warn on first run.
 
 #define MyAppName "Grayson"
-#define MyAppVersion "0.2.2"
+#define MyAppVersion "0.2.3"
 #define MyAppPublisher "M J Anthony"
 #define MyAppURL "https://github.com/mjanthony819/grayson"
 #define MyAppExeName "Grayson.exe"
