@@ -23,7 +23,17 @@ HOTKEY = "<ctrl>+<shift>+<space>"
 
 
 def _icon() -> QIcon:
-    """A simple electric-blue ring, drawn in code so no asset file is needed."""
+    """Load the packaged Grayson mark; fall back to a drawn ring if missing."""
+    import os
+    import sys
+    bundled = os.path.join(getattr(sys, "_MEIPASS", ""), "assets", "icon.png")
+    source = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "assets", "icon.png",
+    )
+    for path in (bundled, source):
+        if os.path.exists(path):
+            return QIcon(path)
     from PySide6.QtGui import QPixmap
     pm = QPixmap(64, 64)
     pm.fill(Qt.transparent)
@@ -87,6 +97,7 @@ class GraysonApp:
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
+        self.app.setWindowIcon(_icon())
         self.tray = QSystemTrayIcon(_icon(), self.app)
         self.tray.setToolTip("Grayson - offline file converter")
 
