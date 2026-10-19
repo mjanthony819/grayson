@@ -5,7 +5,7 @@
 ; NOT code-signed: Windows SmartScreen will warn on first run.
 
 #define MyAppName "Grayson"
-#define MyAppVersion "0.2.1"
+#define MyAppVersion "0.2.2"
 #define MyAppPublisher "M J Anthony"
 #define MyAppURL "https://github.com/mjanthony819/grayson"
 #define MyAppExeName "Grayson.exe"
@@ -29,6 +29,7 @@ OutputBaseFilename=Grayson-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile={#SourcePath}..\assets\grayson.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
