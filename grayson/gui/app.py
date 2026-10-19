@@ -7,6 +7,7 @@ Or drag files onto the drop zone window instead of using the hotkey.
 from __future__ import annotations
 
 import sys
+import re
 import traceback
 from pathlib import Path
 
@@ -221,7 +222,10 @@ class GraysonApp:
 
     def _on_failed(self, err: str):
         last = err.strip().splitlines()[-1] if err.strip() else "unknown error"
-        self.tray.showMessage("Grayson - failed", last[:200],
+        # traceback lines read "grayson.convert.docs.OfficeNotFound: <message>";
+        # show just the message.
+        last = re.sub(r"^[\w.]+(?:Error|Exception|NotFound|Warning): ", "", last)
+        self.tray.showMessage("Grayson - failed", last[:250],
                               QSystemTrayIcon.Critical, 5000)
 
     def run(self) -> int:
