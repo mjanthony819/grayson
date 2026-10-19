@@ -6,12 +6,14 @@ Or drag files onto the drop zone window instead of using the hotkey.
 """
 from __future__ import annotations
 
+import os
 import sys
 import re
+import tempfile
 import traceback
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QThread, Signal, Qt
+from PySide6.QtCore import QObject, QThread, Signal, Qt, QLockFile
 from PySide6.QtGui import QAction, QColor, QGuiApplication, QIcon, QPainter, QPen
 from PySide6.QtWidgets import (QApplication, QInputDialog, QLabel, QMenu,
                                QSystemTrayIcon, QVBoxLayout, QWidget)
@@ -44,6 +46,63 @@ def _icon() -> QIcon:
     p.drawEllipse(10, 10, 44, 44)
     p.end()
     return QIcon(pm)
+
+
+LOCK_FILE = os.path.join(tempfile.gettempdir(), "grayson-app.lock")
+_IPC_NAME = "grayson-single-instance"
+
+
+class SingleInstance:
+    """Named-lock guard so only one Grayson process owns the tray + hotkey.
+
+    QLockFile reclaims locks abandoned by crashed processes, so a stale
+    lock file never blocks a fresh launch. A second launch exits quietly
+    after pinging the running instance over a local socket to show itself.
+    """
+
+    def __init__(self, lock_path: str | None = None):
+        self._lock = QLockFile(lock_path or LOCK_FILE)
+        self._server = None  # QLocalServer, kept alive for the app lifetime
+
+    def acquire(self) -> bool:
+        return self._lock.tryLock(100)
+
+    def release(self):
+        self._lock.unlock()
+
+    def notify_running(self) -> None:
+        """Best-effort nudge so a repeat launch surfaces the running app."""
+        try:
+            from PySide6.QtNetwork import QLocalSocket
+            sock = QLocalSocket()
+            sock.connectToServer(_IPC_NAME)
+            if sock.waitForConnected(300):
+                sock.write(b"show")
+                sock.flush()
+                sock.waitForBytesWritten(300)
+        except Exception:
+            pass  # a nicety only; exiting quietly is fine
+
+    def listen(self, on_ping):
+        """Start the local server the nudge lands on; None if unavailable."""
+        try:
+            from PySide6.QtNetwork import QLocalServer
+        except Exception:
+            return None
+        QLocalServer.removeServer(_IPC_NAME)  # drop a dead peer's socket
+        server = QLocalServer()
+        if not server.listen(_IPC_NAME):
+            return None
+
+        def _handle():
+            while server.hasPendingConnections():
+                conn = server.nextPendingConnection()
+                conn.disconnectFromServer()
+            on_ping()
+
+        server.newConnection.connect(_handle)
+        self._server = server
+        return server
 
 
 class _Worker(QThread):
@@ -95,7 +154,8 @@ class DropZone(QWidget):
 
 
 class GraysonApp:
-    def __init__(self):
+    def __init__(self, guard: "SingleInstance | None" = None):
+        self._guard = guard
         self.app = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
         self.app.setWindowIcon(_icon())
@@ -111,7 +171,7 @@ class GraysonApp:
         hint = QAction(f"Hotkey: Ctrl+Shift+Space (copy a file first)", menu)
         hint.setEnabled(False)
         quit_act = QAction("Quit", menu)
-        quit_act.triggered.connect(self.app.quit)
+        quit_act.triggered.connect(self.shutdown)
         menu.addAction(open_act)
         menu.addAction(hint)
         menu.addSeparator()
@@ -128,6 +188,8 @@ class GraysonApp:
         self._bridge.fired.connect(self._on_hotkey)
         self._listener = None
         self._start_hotkey()
+        if guard is not None:
+            guard.listen(self._on_second_launch)
 
     # -- hotkey ---------------------------------------------------------------
     def _start_hotkey(self):
@@ -228,10 +290,40 @@ class GraysonApp:
         self.tray.showMessage("Grayson - failed", last[:250],
                               QSystemTrayIcon.Critical, 5000)
 
+    def _on_second_launch(self):
+        self.dropzone.show()
+        self.dropzone.raise_()
+        self.dropzone.activateWindow()
+        self.tray.showMessage(
+            "Grayson", "Grayson is already running - here is your drop zone.",
+            QSystemTrayIcon.Information, 2500)
+
+    def shutdown(self):
+        """Quit for real: drop the tray icon and stop the hotkey listener.
+
+        Hiding the icon here removes it immediately instead of waiting for
+        process teardown, so no ghost icon is left sitting in the tray.
+        """
+        self.tray.hide()
+        if self._listener is not None:
+            try:
+                self._listener.stop()
+            except Exception:
+                pass
+        self.app.quit()
+
     def run(self) -> int:
         self.dropzone.show()
-        return self.app.exec()
+        try:
+            return self.app.exec()
+        finally:
+            if self._guard is not None:
+                self._guard.release()
 
 
 def main() -> int:
-    return GraysonApp().run()
+    guard = SingleInstance()
+    if not guard.acquire():
+        guard.notify_running()
+        return 0  # already running: hand over to the first instance
+    return GraysonApp(guard).run()
