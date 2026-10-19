@@ -17,6 +17,11 @@ import tempfile
 from pathlib import Path
 
 from ..core import kind_of
+
+# Grayson runs windowed (pythonw / --windowed exe). Without CREATE_NO_WINDOW,
+# every soffice/powershell spawn flashes a console on Windows.
+_NO_WINDOW = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
+
 from . import pdf as _pdf
 
 
@@ -74,7 +79,8 @@ def _lo_convert_kind(kind: str, src: Path, ext: str, dst: Path) -> Path:
         out_dir.mkdir()
         cmd = [soffice, f"-env:UserInstallation={profile}", "--headless",
                "--convert-to", flt, "--outdir", str(out_dir), str(src)]
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
+                                 **_NO_WINDOW)
         made = sorted(out_dir.glob(f"*.{ext}"))
         if proc.returncode != 0 or not made:
             raise RuntimeError(f"LibreOffice could not convert {src.name}: "
@@ -96,7 +102,8 @@ def _com_to_pdf(src: Path, dst: Path) -> Path:
     ps = (f"$a=New-Object -ComObject {app};try{{$s='{src}';$o='{dst}';"
           f"$d=$a.{open_}($s);$d.{save};$d.Close()}}finally{{$a.Quit()}}")
     proc = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
-                          capture_output=True, text=True, timeout=300)
+                          capture_output=True, text=True, timeout=300,
+                          **_NO_WINDOW)
     if proc.returncode != 0 or not Path(dst).exists():
         raise OfficeNotFound("Neither LibreOffice nor Microsoft Office could convert "
                              f"this file: {proc.stderr.strip()[:200]}")
