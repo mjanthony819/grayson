@@ -13,6 +13,11 @@ from pathlib import Path
 class FFmpegNotFound(RuntimeError):
     pass
 
+# Grayson runs windowed (pythonw / --windowed exe). Without CREATE_NO_WINDOW,
+# every ffmpeg spawn flashes a console on Windows.
+_NO_WINDOW = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
+
+
 
 def find_ffmpeg() -> str:
     env = os.environ.get("GRAYSON_FFMPEG")
@@ -40,7 +45,7 @@ def find_ffmpeg() -> str:
 
 def _run(args: list[str]) -> None:
     cmd = [find_ffmpeg(), "-y", "-hide_banner", "-loglevel", "error", *args]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    proc = subprocess.run(cmd, capture_output=True, text=True, **_NO_WINDOW)
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg failed ({proc.returncode}): {proc.stderr.strip()[:500]}")
 
