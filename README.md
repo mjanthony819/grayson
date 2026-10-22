@@ -5,7 +5,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows-0a0e1a?style=flat-square&logo=windows&logoColor=4f8dff" alt="Windows"/>
   <img src="https://img.shields.io/badge/python-3.10%2B-0a0e1a?style=flat-square&logo=python&logoColor=4f8dff" alt="Python 3.10+"/>
-  <img src="https://img.shields.io/badge/license-MIT-0a0e1a?style=flat-square" alt="MIT"/>
+  <img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-0a0e1a?style=flat-square" alt="PolyForm Noncommercial 1.0.0"/>
   <img src="https://img.shields.io/badge/network-offline-0a0e1a?style=flat-square" alt="Offline"/>
 </p>
 
@@ -165,9 +165,9 @@ pytest + GitHub Actions (CI).
 
 ## License
 
-Grayson is [MIT licensed](LICENSE). Bundled third-party engines keep their own
-licenses: ffmpeg (LGPL/GPL, pulled in via `imageio-ffmpeg`), LibreOffice
-(MPL 2.0, external - install it yourself).
+Grayson's own code is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+Third-party components keep their own licenses: ffmpeg (LGPL/GPL, pulled in via
+`imageio-ffmpeg`), LibreOffice (MPL 2.0, external - install it yourself).
 
 ---
 
